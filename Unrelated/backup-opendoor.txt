@@ -1,0 +1,37 @@
+using UnityEngine;
+using System.Collections;
+
+public class DoorOpen : MonoBehaviour {
+	
+	float DoorOpenAngle = -90.0f;
+    float DoorCloseAngle = 0.0f;
+	float smooth = 2.0f;
+	
+	 float targetValue=0.0f;
+	 float currentValue=0.0f;
+	 float casing=0.05f;
+	// Use this for initialization
+	void Start () {
+	
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		
+	if (open==true)
+		{
+            targetValue=DoorOpenAngle;
+			currentValue=0.0f;
+		}
+		if(open==false)
+		{
+			currentValue=DoorOpenAngle;
+			targetValue=0.0f;
+			
+		}
+		
+		currentValue=currentValue+(targetValue-currentValue)*casing;
+		transform.localRotation=Quaternion.identity;
+		transform.Rotate(0.0f,currentValue,0.0f);
+	}
+}

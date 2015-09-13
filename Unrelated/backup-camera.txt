@@ -1,0 +1,162 @@
+using UnityEngine;
+using System.Collections;
+
+public class CameraMovement : MonoBehaviour
+{
+    public float smooth = 1.5f;         // The relative speed at which the camera will catch up.
+    
+    
+    private Transform player;           // Reference to the player's transform.
+    private Vector3 relCameraPos;       // The relative position of the camera from the player.
+    private float relCameraPosMag;      // The distance of the camera from the player.
+    private Vector3 newPos;             // The position the camera is trying to reach.
+
+    
+    void Awake ()
+    {
+        // Setting up the reference.
+        player = GameObject.FindGameObjectWithTag(Tags.player).transform;
+        
+        // Setting the relative position as the initial relative position of the camera in the scene.
+        relCameraPos = transform.position - player.position;
+        relCameraPosMag = relCameraPos.magnitude - 0.5f;
+    }
+    
+    
+    void FixedUpdate ()
+    {
+        // The standard position of the camera is the relative position of the camera from the player.
+        Vector3 standardPos = player.position + relCameraPos;
+        
+        // The abovePos is directly above the player at the same distance as the standard position.
+        Vector3 abovePos = player.position + Vector3.up * relCameraPosMag;
+        
+        // An array of 5 points to check if the camera can see the player.
+        Vector3[] checkPoints = new Vector3[5];
+        
+        // The first is the standard position of the camera.
+        checkPoints[0] = standardPos;
+        
+        // The next three are 25%, 50% and 75% of the distance between the standard position and abovePos.
+        checkPoints[1] = Vector3.Lerp(standardPos, abovePos, 0.25f);
+        checkPoints[2] = Vector3.Lerp(standardPos, abovePos, 0.5f);
+        checkPoints[3] = Vector3.Lerp(standardPos, abovePos, 0.75f);
+        
+        // The last is the abovePos.
+        checkPoints[4] = abovePos;
+        
+        // Run through the check points...
+        for(int i = 0; i < checkPoints.Length; i++)
+        {
+            // ... if the camera can see the player...
+            if(ViewingPosCheck(checkPoints[i]))
+                // ... break from the loop.
+                break;
+        }
+        
+        // Lerp the camera's position between it's current position and it's new position.
+        transform.position = Vector3.Lerp(transform.position, newPos, smooth * Time.deltaTime);
+        
+        // Make sure the camera is looking at the player.
+        SmoothLookAt();
+    }
+    
+    
+    bool ViewingPosCheck (Vector3 checkPos)
+    {
+        RaycastHit hit;
+        
+        // If a raycast from the check position to the player hits something...
+        if(Physics.Raycast(checkPos, player.position - checkPos, out hit, relCameraPosMag))
+            // ... if it is not the player...
+            if(hit.transform != player)
+                // This position isn't appropriate.
+                return false;
+        
+        // If we haven't hit anything or we've hit the player, this is an appropriate position.
+        newPos = checkPos;
+        return true;
+    }
+    
+    
+    void SmoothLookAt ()
+    {
+        // Create a vector from the camera towards the player.
+        Vector3 relPlayerPosition = player.position - transform.position;
+       	
+        // Create a rotation based on the relative position of the player being the forward vector.
+      // Quaternion lookAtRotation = Quaternion.LookRotation(relPlayerPosition, Vector3.up);
+        
+        // Lerp the camera's rotation between it's current rotation and the rotation that looks at the player.
+		
+        //transform.rotation = Quaternion.Lerp(transform.rotation, lookAtRotation, smooth * Time.deltaTime);;
+		
+		
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// Put this script on a GameObject with your camera and a character controller on it.
+using UnityEngine;
+using System.Collections;
+
+public class CameraMovement : MonoBehaviour {
+ GameObject target;  // Assign this to your player
+double maxDist = 20.0; // distance before triggering follow
+double minDist = 10.0; // distance before untriggering follow
+double speed = 6.0;  // Should be set to the same speed as your character
+private double acc = 0.0; // Amount of movement on the camera. this starts at 0 and builds until it reaches speed. 
+
+void LateUpdate () // Had to be late update becuase it was studdering otherwise.  
+	{
+	double myDist = 0; // This variable is a (changing) threshhold to determine whether or not our camera should be moving or not. 
+	// when the camera is not moving (acc==0), it is asigned to maxDist. 
+	// Once the camera starts moving, we set myDist to minDist. This means the camera needs to get even CLOSER to the player before it stops
+	// moving than it took to trigger it in the first place. this behavior does 2 things: 
+	// When the camera is stopped, it lets the character walk around a bit before the cam starts to move. 
+	// When the camera is moving, it prevents studdering as the character walks in-and-out of threshold. 
+	
+	if (acc == 0) // If the camera	 is not moving
+		{
+		myDist = maxDist; // Set our threshhold to Max
+		}
+	else // else the camera IS moving
+		{
+		myDist = minDist; // set threshold to min
+		}
+	transform.LookAt(target.transform);  // Aim at the character 
+	
+	double idist = Vector3.Distance(transform.position, target.transform.position); // Get distance between the cam and the player
+	
+	if (idist > myDist) // If distance beyond our current threshold 
+		{
+		acc = Mathf.Min(acc + 2, speed); // accelerate by a fixed amount (+2) until we're at max speed (speed)
+		}
+	else  // Else the distance is inside our threshold 
+		{
+		acc = Mathf.Max(acc - 2, 0);  // deacclerate by (-2) until we're at stopped (0).
+		}
+
+if (acc > 0) // If we're moving
+		{
+	    //transform.Translate(0, 0,  acc	 * Time.deltaTime); // Old way without collision; 
+		
+		//--VV-- This turns the local angle into a world coord that can be passed to the Move command 
+		double iangle = transform.TransformDirection(Vector3(0,0, acc * Time.deltaTime));  
+		//--AA--
+		 CharacterController  controller = GetComponent(CharacterController); // Get controller 
+		 controller.Move(iangle);// Move with collision but without gravity. 
+		}
+	}
+	
+}
